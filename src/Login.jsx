@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { UserContext } from "./UserContext";
 
 let Login = (props) => {
 var [email, setEmail] = useState("");
 var [password, setPassword] = useState("");
+let userContext = useContext(UserContext);
 
 let [dirty, setDirty] = useState({
     email: false,
@@ -108,7 +110,17 @@ let onLoginClick = async () => {
     if (response.ok) {
         //Status code is 200
         let responseBody = await response.json();
+
+        //set global state using context
         if (responseBody.length > 0) {
+        userContext.setUser({
+            ...userContext.user,
+            isLoggedIn: true,
+            currentUserName: responseBody[0].fullName,
+            currentUserId: responseBody[0].id,
+        });
+
+        //redirect to /dashboard
         props.history.replace("/dashboard");
         } else {
         setLoginMessage(
