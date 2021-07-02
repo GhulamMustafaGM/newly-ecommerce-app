@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { UserContext } from "./UserContext";
 
-let Register = () => {
+let Register = (props) => {
 let [state, setState] = useState({
     email: "",
     password: "",
@@ -43,6 +44,8 @@ let [dirty, setDirty] = useState({
 });
 
 let [message, setMessage] = useState("");
+
+let userContext = useContext(UserContext);
 
 //validate
 let validate = () => {
@@ -125,6 +128,7 @@ useEffect(() => {
     document.title = "Register - eCommerce";
 }, []);
 
+//executes when the user clicks on Register button
 let onRegisterClick = async () => {
     //set all controls as dirty
     let dirtyData = dirty;
@@ -153,9 +157,20 @@ let onRegisterClick = async () => {
     });
 
     if (response.ok) {
+        let responseBody = await response.json();
+
+        userContext.setUser({
+        ...userContext.user,
+        isLoggedIn: true,
+        currentUserName: responseBody.fullName,
+        currentUserId: responseBody.id,
+        });
+
         setMessage(
         <span className="text-success">Successfully Registered</span>
         );
+
+        props.history.replace("/dashboard");
     } else {
         setMessage(
         <span className="text-danger">Errors in database connection</span>
