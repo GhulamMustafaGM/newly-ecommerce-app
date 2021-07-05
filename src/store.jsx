@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
-import { BrandsService, CategoriesService, ProductsService } from "./Service";
+import { BrandsService, CategoriesService } from "./Service";
 import Product from "./Product";
 
 function Store() {
