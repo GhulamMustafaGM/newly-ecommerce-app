@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { UserContext } from "./UserContext";
 
 let Login = (props) => {
-var [email, setEmail] = useState("");
-var [password, setPassword] = useState("");
+var [email, setEmail] = useState("admin@test.com");
+var [password, setPassword] = useState("Admin123");
 let userContext = useContext(UserContext);
+let myEmailRef = useRef();
 
 let [dirty, setDirty] = useState({
     email: false,
@@ -36,6 +37,7 @@ useEffect(() => {
 //executes only once - on initial render =  componentDidMount
 useEffect(() => {
     document.title = "Login - eCommerce";
+    myEmailRef.current.focus();
 }, []);
 
 //executes only once - on component unmounting phase = componentWillUnmount
@@ -113,15 +115,26 @@ let onLoginClick = async () => {
 
         //set global state using context
         if (responseBody.length > 0) {
-        userContext.setUser({
-            ...userContext.user,
-            isLoggedIn: true,
+        userContext.dispatch({ type: "somework", payload: { x: 10, y: 20 } }); //invokes reducer
+
+        //dispatch calls reducer
+        userContext.dispatch({
+            type: "login",
+            payload: {
             currentUserName: responseBody[0].fullName,
             currentUserId: responseBody[0].id,
+            currentUserRole: responseBody[0].role,
+            },
         });
 
-        //redirect to /dashboard
-        props.history.replace("/dashboard");
+        //redirect to relavant page based on role of the user received in the response
+        if (responseBody[0].role === "user") {
+            //redirect to /dashboard
+            props.history.replace("/dashboard");
+        } else {
+            //redirect to /products
+            props.history.replace("/products");
+        }
         } else {
         setLoginMessage(
             <span className="text-danger">Invalid Login, please try again</span>
@@ -176,6 +189,7 @@ return (
                 validate();
                 }}
                 placeholder="Email"
+                ref={myEmailRef}
             />
 
             <div className="text-danger">
