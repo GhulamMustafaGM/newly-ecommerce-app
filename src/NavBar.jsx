@@ -10,11 +10,9 @@ let userContext = useContext(UserContext);
 let onLogoutClick = (event) => {
     event.preventDefault();
 
-    userContext.setUser({
-    isLoggedIn: false,
-    currentUserId: null,
-    currentUserName: null,
-    currentUserRole: null,
+    //dispatch calls reducer
+    userContext.dispatch({
+    type: "logout",
     });
 
     window.location.hash = "/";
