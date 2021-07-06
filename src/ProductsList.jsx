@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { BrandsService, CategoriesService, SortService } from "./Service";
 
 function ProductsList(props) {
 //state
-let [products, setProducts] = useState([]);
-let [originalProducts, setOriginalProducts] = useState([]);
-let [search, setSearch] = useState("");
-let [sortBy, setSortBy] = useState("productName");
-let [sortOrder, setSortOrder] = useState("ASC"); //ASC or DESC
+let [products, setProducts] = useState([]); //represents the array of products to show in the grid
+let [originalProducts, setOriginalProducts] = useState([]); //stores the actual array of products loaded from server
+let [search, setSearch] = useState(""); //represents the value of search textbox
+let [sortBy, setSortBy] = useState("productName"); //Represents name of the sort column selected by the user
+let [sortOrder, setSortOrder] = useState("ASC"); //ASC or DESC: represents order of sorting either ascending or descending
+let [brands, setBrands] = useState([]); //stores all brands from server
+let [selectedBrand, setSelectedBrand] = useState(""); //represents name of the brand selected by the user
 
-//useEffect
+//useEffect: Executes on first render only
 useEffect(() => {
     (async () => {
     //get data from brands database
     let brandsResponse = await BrandsService.fetchBrands();
     let brandsResponseBody = await brandsResponse.json();
+    setBrands(brandsResponseBody);
 
     //get data from categories database
     let categoriesResponse = await CategoriesService.fetchCategories();
@@ -27,6 +30,7 @@ useEffect(() => {
     );
     let productsResponseBody = await productsResponse.json();
 
+    //set "brand" and "category" property for each product
     productsResponseBody.forEach((product) => {
         product.brand = BrandsService.getBrandByBrandId(
         brandsResponseBody,
@@ -44,16 +48,28 @@ useEffect(() => {
     })();
 }, [search]);
 
+//filter products based on selected brand name in the dropdownlist
+let filteredProducts = useMemo(() => {
+    console.log("filteredProducts", originalProducts, selectedBrand);
+    return originalProducts.filter(
+    (prod) => prod.brand.brandName.indexOf(selectedBrand) >= 0
+    );
+}, [originalProducts, selectedBrand]);
+
 //when the user clicks on a column name to sort
 let onSortColumnNameClick = (event, columnName) => {
     event.preventDefault(); //avoid refresh
     setSortBy(columnName);
     let negatedSortOrder = sortOrder === "ASC" ? "DESC" : "ASC";
     setSortOrder(negatedSortOrder);
-    setProducts(
-    SortService.getSortedArray(originalProducts, columnName, negatedSortOrder)
-    );
 };
+
+//useEffect: Executes on each change of filteredBrands, sortBy or sortOrder
+useEffect(() => {
+    setProducts(
+    SortService.getSortedArray(filteredProducts, sortBy, sortOrder)
+    );
+}, [filteredProducts, sortBy, sortOrder]);
 
 //render column name
 let getColumnHeader = (columnName, displayName) => {
@@ -80,6 +96,7 @@ let getColumnHeader = (columnName, displayName) => {
     </React.Fragment>
     );
 };
+
 return (
     <div className="row">
     <div className="col-12">
@@ -91,7 +108,7 @@ return (
             </h4>
         </div>
 
-        <div className="col-lg-9">
+        <div className="col-lg-6">
             <input
             type="search"
             value={search}
@@ -102,6 +119,23 @@ return (
                 setSearch(event.target.value);
             }}
             />
+        </div>
+
+        <div className="col-lg-3">
+            <select
+            className="form-control"
+            value={selectedBrand}
+            onChange={(event) => {
+                setSelectedBrand(event.target.value);
+            }}
+            >
+            <option value="">All Brands</option>
+            {brands.map((brand) => (
+                <option value={brand.brandName} key={brand.id}>
+                {brand.brandName}
+                </option>
+            ))}
+            </select>
         </div>
         </div>
     </div>
