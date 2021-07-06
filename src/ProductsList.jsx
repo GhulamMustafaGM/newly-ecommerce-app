@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { BrandsService, CategoriesService, SortService } from "./Service";
+import {
+BrandsService,
+CategoriesService,
+SortService,
+PagingService,
+} from "./Service";
 
-function ProductsList(props) {
+function ProductsList() {
 //state
 let [products, setProducts] = useState([]); //represents the array of products to show in the grid
 let [originalProducts, setOriginalProducts] = useState([]); //stores the actual array of products loaded from server
@@ -10,6 +15,9 @@ let [sortBy, setSortBy] = useState("productName"); //Represents name of the sort
 let [sortOrder, setSortOrder] = useState("ASC"); //ASC or DESC: represents order of sorting either ascending or descending
 let [brands, setBrands] = useState([]); //stores all brands from server
 let [selectedBrand, setSelectedBrand] = useState(""); //represents name of the brand selected by the user
+let [pages, setPages] = useState([]);
+let [pageSize] = useState(5);
+let [currentPageIndex, setCurrentPageIndex] = useState(0);
 
 //useEffect: Executes on first render only
 useEffect(() => {
@@ -45,16 +53,22 @@ useEffect(() => {
 
     setProducts(productsResponseBody);
     setOriginalProducts(productsResponseBody);
+    setCurrentPageIndex(0);
     })();
 }, [search]);
 
 //filter products based on selected brand name in the dropdownlist
 let filteredProducts = useMemo(() => {
-    console.log("filteredProducts", originalProducts, selectedBrand);
+    //console.log("filteredProducts", originalProducts, selectedBrand);
     return originalProducts.filter(
     (prod) => prod.brand.brandName.indexOf(selectedBrand) >= 0
     );
 }, [originalProducts, selectedBrand]);
+
+//When the selectedBrand changes
+useEffect(() => {
+    setCurrentPageIndex(0);
+}, [selectedBrand]);
 
 //when the user clicks on a column name to sort
 let onSortColumnNameClick = (event, columnName) => {
@@ -66,10 +80,31 @@ let onSortColumnNameClick = (event, columnName) => {
 
 //useEffect: Executes on each change of filteredBrands, sortBy or sortOrder
 useEffect(() => {
-    setProducts(
-    SortService.getSortedArray(filteredProducts, sortBy, sortOrder)
+    //calculate no. of pages & create page objects
+    setPages(PagingService.getPagesArray(filteredProducts, pageSize));
+
+    //sort
+    let sortedArray = SortService.getSortedArray(
+    filteredProducts,
+    sortBy,
+    sortOrder
     );
-}, [filteredProducts, sortBy, sortOrder]);
+
+    //paging
+    let pagedArray = PagingService.getRowsByPageIndex(
+    sortedArray,
+    currentPageIndex,
+    pageSize
+    );
+    //get sorted products
+    setProducts(pagedArray);
+}, [filteredProducts, sortBy, sortOrder, pageSize, currentPageIndex]);
+
+//When the user clicks on page number
+let onPageIndexClicked = (clickedPageIndex) => {
+    if (clickedPageIndex >= 0 && clickedPageIndex < pages.length)
+    setCurrentPageIndex(clickedPageIndex);
+};
 
 //render column name
 let getColumnHeader = (columnName, displayName) => {
@@ -104,7 +139,9 @@ return (
         <div className="col-lg-3">
             <h4>
             <i className="fa fa-suitcase"></i> Products{" "}
-            <span className="badge badge-secondary">{products.length}</span>
+            <span className="badge badge-secondary">
+                {filteredProducts.length}
+            </span>
             </h4>
         </div>
 
@@ -140,7 +177,7 @@ return (
         </div>
     </div>
 
-    <div className="col-lg-10 mx-auto mb-2">
+    <div className="col-lg-10 mx-auto mb-2" style={{ height: "380px" }}>
         <div className="card my-2 shadow">
         <div className="card-body">
             <table className="table">
@@ -178,6 +215,67 @@ return (
             </table>
         </div>
         </div>
+    </div>
+
+    <div className="col-12">
+        <ul className="pagination justify-content-center mt-1">
+        <li
+            className="page-item"
+            onClick={() => {
+            onPageIndexClicked(currentPageIndex - 1);
+            }}
+        >
+            <a
+            className="page-link bg-secondary text-white"
+            href="/#"
+            onClick={(event) => {
+                event.preventDefault();
+            }}
+            >
+            Prev
+            </a>
+        </li>
+        {pages.map((page) => (
+            <li
+            key={page.pageIndex}
+            className={
+                currentPageIndex === page.pageIndex
+                ? "page-item active"
+                : "page-item"
+            }
+            onClick={() => {
+                onPageIndexClicked(page.pageIndex);
+            }}
+            >
+            <a
+                className="page-link"
+                href="/#"
+                onClick={(event) => {
+                event.preventDefault();
+                }}
+            >
+                {page.pageIndex + 1}
+            </a>
+            </li>
+        ))}
+
+        <li
+            className="page-item"
+            onClick={() => {
+            onPageIndexClicked(currentPageIndex + 1);
+            }}
+        >
+            <a
+            className="page-link bg-secondary text-white"
+            href="/#"
+            onClick={(event) => {
+                event.preventDefault();
+            }}
+            >
+            Next
+            </a>
+        </li>
+        </ul>
     </div>
     </div>
 );
